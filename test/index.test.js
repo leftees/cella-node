@@ -2,9 +2,13 @@
 
 const chai = require('chai')
 const CellaClient = require('../src/')
-const NotImplementedError = require('../src/errors')
 
 const expect = chai.expect
+const mockRStream = {}
+
+mockRStream.emit = (evt, args) => { evt,	args }
+mockRStream.on = (evt, cb) => { }
+mockRStream.open = () => { }
 
 describe('CellaClient', () => {
   it('should throw Error without token', () => {
@@ -15,108 +19,91 @@ describe('CellaClient', () => {
     let client = new CellaClient('xxxx')
     expect(client.token).to.equal('xxxx')
     expect(client.rstreamAddr).to.equal('ws://stream.cella.xyz')
+		expect(client.rstream).to.not.be.null
 
     client = new CellaClient({ token: 'xxxx', server: 'yyyy' })
     expect(client.token).to.equal('xxxx')
     expect(client.rstreamAddr).to.equal('yyyy')
+		expect(client.rstream).to.not.be.null
   })
 
   it('should handle error when !connect', done => {
     const client = new CellaClient({ token: 'xxxx', server: 'ws://not.exist.example.com' })
-    client.on('connect_error', err => {
+    client.once('connect_error', err => {
       expect(err).to.be.a('error')
       done()
     })
   })
-})
 
-describe('composeMessage', () => {
-  const client = new CellaClient('xxxx')
-  it('test text message', () => {
-    const o = client.composeTextMessage('wx_user_id', 'this_is_content')
-    expect(o).to.eql({
-      body: {
-        touser: 'wx_user_id',
-        msgtype: 'text',
-        text: {
-          content: 'this_is_content',
-        },
-      },
-      to: 'cella-wx-touch-svc-token',
-    })
-  })
+	it('should emit error event when rstream received malformed message', done => {
+		const client = new CellaClient({ token: 'xxxx', rstream: Object.assign({}, mockRStream) })
+		const msgObj = { a: 12345 }
+		client.on('error', obj => {
+			expect(obj).to.be.not.null
+			done()
+		})
+		client.handleRawMsg(msgObj)
+	})
 
-  it('test image message', () => {
-    const o = client.composeImageMessage('wx_user_id', 'media_id')
-    expect(o).to.eql({
-      body: {
-        touser: 'wx_user_id',
-        msgtype: 'image',
-        image: {
-          media_id: 'media_id',
-        },
-      },
-      to: 'cella-wx-touch-svc-token',
-    })
-  })
+	it('should emit rawMessage event when rstream received message', done => {
+		const client = new CellaClient({ token: 'xxxx', rstream: Object.assign({}, mockRStream) })
+		const msgObj = {
+			id: 11,
+			body: {
+				MsgType: 'type',
+				FromUserName: 'wx111',
+				CreateTime: 111111,
+			},
+			to: 'xxxx',
+		}
+		client.on('error', obj => {
+			expect(obj).to.be.null
+			done()
+		})
+		client.on('rawMessage', msg => {
+			expect(msg).to.eql(msgObj)
+			done()
+		})
+		client.handleRawMsg(msgObj)
+	})
 
-  it('test voice message', () => {
-    const o = client.composeVoiceMessage('wx_user_id', 'media_id')
-    expect(o).to.eql({
-      body: {
-        touser: 'wx_user_id',
-        msgtype: 'voice',
-        voice: {
-          media_id: 'media_id',
-        },
-      },
-      to: 'cella-wx-touch-svc-token',
-    })
-  })
+	it('should emit message event when rstream received message', done => {
+		const client = new CellaClient({ token: 'xxxx', rstream: Object.assign({}, mockRStream) })
+		const msgObj = {
+			id: 11,
+			body: {
+				MsgType: 'text',
+				FromUserName: 'wx111',
+				CreateTime: 111111,
+			},
+			to: 'xxxx',
+		}
+		client.on('error', obj => {
+			expect(obj).to.be.null
+			done()
+		})
+		client.on('message', msg => {
+			expect(msg).to.deep.equal({
+				platform: 'wechat',
+				id: 11,
+				type: 'text',
+				userId: 'wx111',
+				to: 'xxxx',
+				createTime: 111111,
+				userProfile: {},
+				body: msgObj.body,
+			})
+			done()
+		})
+		client.handleRawMsg(msgObj)
+	})
 
-  it('test rich message', () => {
-    const _art = {
-      title: 'title',
-      description: 'description',
-      url: 'url',
-      picurl: 'picurl',
-    }
-
-    let o = client.composeRichMessage('wx_user_id', _art)
-    expect(o).to.eql({
-      body: {
-        touser: 'wx_user_id',
-        msgtype: 'news',
-        news: {
-          articles: [_art],
-        },
-      },
-      to: 'cella-wx-touch-svc-token',
-    })
-
-    const _art2 = {
-      title: 'title_2',
-      description: 'description_2',
-      url: 'url_2',
-      picurl: 'picurl_2',
-    }
-
-    const arr = [_art, _art2]
-
-    o = client.composeRichMessage('wx_user_id', arr)
-    expect(o).to.eql({
-      body: {
-        touser: 'wx_user_id',
-        msgtype: 'news',
-        news: {
-          articles: arr,
-        },
-      },
-      to: 'cella-wx-touch-svc-token',
-    })
-  })
-
-  it('video message should throw NotImplementedError', () => {
-    expect(() => client.composeVideoMessage('wx_user_id', 'media_id')).to.throw(NotImplementedError)
-  })
+	it('should respond open rstream', done => {
+		const client = new CellaClient({ token: 'xxxx', rstream: Object.assign({
+			close: () => {
+				done()
+			}
+		}, mockRStream) })
+		client.close()
+	})
 })

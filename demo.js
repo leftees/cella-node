@@ -1,4 +1,3 @@
-const fs = require('fs')
 const debug = require('debug')('cella-client:demo')
 
 const CellaClient = require('./src/')
@@ -20,7 +19,7 @@ client.on('message', msg => {
 		client.sendTextMessage(msg.userId, `You said : ${msg.body.Content}`)
 	} else if ('image' === msg.type) {
 		client.sendImageMessage(msg.userId, msg.body.MediaId)
-		client.sendTextMessage(msg.userId, `You sent me <a href="${msg.body.MediaUrl}">a photo</a>`)
+		client.sendTextMessage( msg.userId, `You sent me <a href="${msg.body.MediaUrl}">a photo</a>`)
 	} else if ('voice' === msg.type) {
 		client.sendVoiceMessage(msg.userId, msg.body.MediaId)
 		if (msg.body.Recognition) {
@@ -45,7 +44,7 @@ client.on('message', msg => {
 			url: msg.body.Url,
 			picurl: msg.userProfile.headimgurl || '',
 		}
-		client.sendRichMessage(msg.userId, article)
+		client.sendArticleMessage(msg.userId, article)
 		articles.push(article)
 		articles.push({
 			title: `Baidu: ${new Date()}`,
@@ -53,7 +52,7 @@ client.on('message', msg => {
 			url: 'http://www.baidu.com',
 			picurl: 'https://ss0.bdstatic.com/5aV1bjqh_Q23odCf/static/superman/img/logo/bd_logo1_31bdc765.png',
 		})
-		client.sendRichMessage(msg.userId, articles)
+		client.sendArticleMessage(msg.userId, articles)
 	} else if ('location_report' === msg.type) {
 		const respondText = `You've reported your location: <a href="http://3gimg.qq.com/lightmap/v1/wxmarker/index.html?marker=coord:${msg.body.Latitude},${msg.body.Longitude};title:YouAreHere;addr:Mars&referer=wexinmp_profil">Maybe you are here  (Precision:${Number.parseInt(msg.body.Precision, 10)}%)</a>`
 		client.sendTextMessage(msg.userId, respondText)

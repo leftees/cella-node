@@ -1,4 +1,5 @@
 const Emitter = require('events')
+const assert = require('assert')
 
 const debug = require('debug')('cella-client')
 const RStream = require('rstream')
@@ -35,18 +36,26 @@ module.exports = class CellaClient extends Emitter {
 		if ('object' == typeof option) {
 			this.token = option.token
 			this.rstreamAddr = option.server
+			this.rstream = isNullOrEmptyObject(option.rstream) ? undefined : option.rstream
 		} else {
 			this.token = option
 			this.rstreamAddr = 'ws://stream.cella.xyz'
 		}
 
-		if (!this.token) {
-			throw new Error('Token can not be null')
-		}
+		assert(this.token, 'Token can not be null')
 
 		this.version = pkgInfo.version
 
-		this.rstream = this.createRStream()
+		if (!this.rstream) {
+			this.rstream = new RStream({
+				server: this.rstreamAddr,
+				token: this.token,
+			})
+		}
+
+		assert(this.rstream, 'option.rstream not work')
+
+		this.bindEventToStream(this.rstream)
 
 		process.nextTick(_ => {
 			this.rstream.open()
@@ -60,12 +69,7 @@ module.exports = class CellaClient extends Emitter {
 	 * @api private
 	 */
 
-	createRStream() {
-		const rstream = new RStream({
-			server: this.rstreamAddr,
-			token: this.token,
-		})
-
+	bindEventToStream(rstream) {
 		rstream.on('connect_error', err => {
 			debug('RStream connect_error', err)
 			this.emit('connect_error', err)
@@ -82,8 +86,6 @@ module.exports = class CellaClient extends Emitter {
 			debug('RStream connected')
 			this.emit('connect')
 		})
-
-		return rstream
 	}
 
 	/**
@@ -97,6 +99,16 @@ module.exports = class CellaClient extends Emitter {
 	}
 
 	/**
+	 * Open stream
+	 *
+	 * @api public
+	 */
+
+	open() {
+		this.rstream.open()
+	}
+
+	/**
 	 * Process raw message
 	 *
 	 * @param {Object} message
@@ -105,53 +117,45 @@ module.exports = class CellaClient extends Emitter {
 
 	handleRawMsg(rawMsg) {
 		// debug('handleRawMsg', rawMsg)
-		const msg = {
-			platform: 'wechat',
-			id: rawMsg.id,
-			type: rawMsg.body.MsgType,
-			userId: rawMsg.body.FromUserName,
-			userProfile: rawMsg.body.UserProfile || {},
-			to: rawMsg.to,
-			createTime: rawMsg.body.CreateTime,
-			body: rawMsg.body,
+		try{
+			const msg = {
+				platform: 'wechat',
+				id: rawMsg.id,
+				type: rawMsg.body.MsgType,
+				userId: rawMsg.body.FromUserName,
+				userProfile: rawMsg.body.UserProfile || {},
+				to: rawMsg.to,
+				createTime: rawMsg.body.CreateTime,
+				body: rawMsg.body,
+			}
+
+			delete msg.body.UserProfile
+
+			if ('event' === msg.type && 'LOCATION' === msg.body.Event) {
+				msg.type = 'location_report'
+			}
+
+			if ('text' === msg.type && msg.body.Content == '【收到不支持的消息类型，暂无法显示】') {
+				msg.type = 'wechat_not_support'
+			}
+
+			this.emit('rawMessage', rawMsg)
+			this.emit('message', msg)
+		} catch (err) {
+			this.emit('error', { errdes: 'malformed message', rawMsg, err })
 		}
-
-		delete msg.body.UserProfile
-
-		if ('event' === msg.type && 'LOCATION' === msg.body.Event) {
-			msg.type = 'location_report'
-		}
-
-		if ('text' === msg.type && msg.body.Content == '【收到不支持的消息类型，暂无法显示】') {
-			msg.type = 'wechat_not_support'
-		}
-
-		this.emit('rawMessage', rawMsg)
-		this.emit('message', msg)
 	}
 
 	/**
 	 * sendMessage
 	 *
-	 * @param {Object} respond
+	 * @param {String} toUser - WeChat user OpenID
+	 * @param {MESSAGE_TYPE} msgType
+	 * @param {Object} msgBody
 	 * @api private
 	 */
 
-	sendMessage(respond) {
-		debug('sendMessage', respond)
-		this.rstream.sendMessage(respond)
-	}
-
-	/**
-	 * composeMessage
-	 *
-	 * @param {String} toUser - user's Wechat OpenID
-	 * @param {String} msgType - message type
-	 * @param {Object} msgBody - message body
-	 * @api public
-	 */
-
-	composeMessage(toUser, msgType, msgBody) {
+	sendMessage(toUser, msgType, msgBody) {
 		const respond_body = {
 			touser: toUser,
 			msgtype: msgType,
@@ -164,7 +168,8 @@ module.exports = class CellaClient extends Emitter {
 			body: respond_body,
 		}
 
-		return respond
+		debug('sendMessage', respond)
+		this.rstream.sendMessage(respond)
 	}
 
 	/**
@@ -176,17 +181,11 @@ module.exports = class CellaClient extends Emitter {
 	 */
 
 	sendTextMessage(toUser, text) {
-		const msg = this.composeTextMessage(toUser, text)
-
-		this.sendMessage(msg)
-	}
-
-	composeTextMessage(toUser, text) {
 		const respond = {
 			content: text,
 		}
 
-		return this.composeMessage(toUser, MESSAGE_TYPE.TEXT, respond)
+		this.sendMessage(toUser, MESSAGE_TYPE.TEXT, respond)
 	}
 
 	/**
@@ -198,16 +197,10 @@ module.exports = class CellaClient extends Emitter {
 	 */
 
 	sendImageMessage(toUser, mediaId) {
-		const respond = this.composeImageMessage(toUser, mediaId)
-		this.sendMessage(respond)
-	}
-
-	composeImageMessage(toUser, mediaId) {
 		const respond = {
 			media_id: mediaId,
 		}
-
-		return this.composeMessage(toUser, MESSAGE_TYPE.IMAGE, respond)
+		this.sendMessage(toUser, MESSAGE_TYPE.IMAGE, respond)
 	}
 
 	/**
@@ -219,16 +212,10 @@ module.exports = class CellaClient extends Emitter {
 	 */
 
 	sendVoiceMessage(toUser, mediaId) {
-		const respond = this.composeVoiceMessage(toUser, mediaId)
-		this.sendMessage(respond)
-	}
-
-	composeVoiceMessage(toUser, mediaId) {
 		const respond = {
 			media_id: mediaId,
 		}
-
-		return this.composeMessage(toUser, MESSAGE_TYPE.VOICE, respond)
+		this.sendMessage(toUser, MESSAGE_TYPE.VOICE, respond)
 	}
 
 	/**
@@ -240,11 +227,6 @@ module.exports = class CellaClient extends Emitter {
 	 */
 
 	sendVideoMessage(toUser, mediaId) {
-		const respond = this.composeVideoMessage(toUser, mediaId)
-		this.sendMessage(respond)
-	}
-
-	composeVideoMessage(toUser, mediaId) {
 		// WeChat not support this kind of request good, we'll implement this later.
 		// ```
 		// { errcode: 45161
@@ -254,19 +236,14 @@ module.exports = class CellaClient extends Emitter {
 	}
 
 	/**
-	 * sendRichMessage
+	 * sendArticleMessage
 	 *
 	 * @param {String} toUser - user's Wechat OpenID
 	 * @param {Object} articles - an article array of article object
 	 * @api public
 	 */
 
-	sendRichMessage(toUser, articles) {
-		const respond = this.composeRichMessage(toUser, articles)
-		this.sendMessage(respond)
-	}
-
-	composeRichMessage(toUser, articles) {
+	sendArticleMessage(toUser, articles) {
 		let respond = {
 			articles,
 		}
@@ -279,7 +256,7 @@ module.exports = class CellaClient extends Emitter {
 			}
 		}
 
-		return this.composeMessage(toUser, MESSAGE_TYPE.NEWS, respond)
+		this.sendMessage(toUser, MESSAGE_TYPE.NEWS, respond)
 	}
 }
 
@@ -289,6 +266,20 @@ module.exports = class CellaClient extends Emitter {
  * @param {Object} obj
  * @api private
  */
+
 function isArray(obj) {
 	return (!!obj) && (obj.constructor === Array)
+}
+
+/**
+ * Determine if an object is empty
+ *
+ * @param {Object} obj
+ * @return {Boolen} if object is empt
+ * @api private
+ */
+
+function isNullOrEmptyObject(obj) {
+	if (!obj)	return true
+  return !Object.keys(obj).length
 }
