@@ -4,8 +4,8 @@ const assert = require('assert')
 const debug = require('debug')('cella-client')
 const RStream = require('rstream')
 
-const pkgInfo = require('../package.json')
-const NotImplementedError = require('./errors')
+const pkgInfo = require('./package.json')
+const NotImplementedError = require('./src/errors')
 
 const MESSAGE_TYPE = {
 	NEWS: 'news',

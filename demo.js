@@ -1,6 +1,6 @@
 const debug = require('debug')('cella-client:demo')
 
-const CellaClient = require('./src/')
+const CellaClient = require('./index')
 
 const TOKEN = process.env.TOKEN || ''
 

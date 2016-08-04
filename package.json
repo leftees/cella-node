@@ -1,8 +1,8 @@
 {
   "name": "cella-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The hassle-free way to build AI assistant service",
-  "main": "lib/index.js",
+  "main": "./src/index.js",
   "keywords": [
     "magic",
     "ai",
@@ -10,6 +10,7 @@
     "client",
     "driver"
   ],
+  "files": ["src", "test"],
   "scripts": {
     "debug": "DEBUG=*,-nodemon*,-babel,-engine.io*,-socket.io* nodemon --delay 1500ms --ignore test/ --watch src demo.js",
     "test": "make test"

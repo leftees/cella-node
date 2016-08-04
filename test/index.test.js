@@ -1,7 +1,7 @@
 'use strict'
 
 const chai = require('chai')
-const CellaClient = require('../src/')
+const CellaClient = require('../')
 
 const expect = chai.expect
 const mockRStream = {}
