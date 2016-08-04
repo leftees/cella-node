@@ -16,11 +16,11 @@ The hassle-free way to build AI assistant service for WeChat, this is the node.j
 
 ## 1 minute integrate your WeChat to your service
 
-1) Add `cella-node` to your project
+### Add `cella-node` to your project
 
 `npm i cella-node --save`
 
-2) Implement your *hello world* rebot
+### Implement your *hello world* robot
 
 ```javascript
 const CellaClient = require('cella-node')

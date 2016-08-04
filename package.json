@@ -11,7 +11,7 @@
     "driver"
   ],
   "scripts": {
-    "start": "DEBUG=*,-nodemon*,-babel,-engine.io*,-socket.io* nodemon --delay 1500ms --ignore test/ --watch src demo.js",
+    "debug": "DEBUG=*,-nodemon*,-babel,-engine.io*,-socket.io* nodemon --delay 1500ms --ignore test/ --watch src demo.js",
     "test": "make test"
   },
   "repository": "git+https://github.com/10cella/cella-node.git",
