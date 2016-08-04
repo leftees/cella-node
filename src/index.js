@@ -116,8 +116,7 @@ module.exports = class CellaClient extends Emitter {
 	 */
 
 	handleRawMsg(rawMsg) {
-		// debug('handleRawMsg', rawMsg)
-		try{
+		try {
 			const msg = {
 				platform: 'wechat',
 				id: rawMsg.id,
