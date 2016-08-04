@@ -1,6 +1,6 @@
 {
   "name": "cella-node",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "The hassle-free way to build AI assistant service",
   "main": "lib/index.js",
   "keywords": [
