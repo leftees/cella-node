@@ -1,15 +1,37 @@
-# cella-wechat-node
+# cella-node
 
 The hassle-free way to build AI assistant service for WeChat, this is the node.js client of Cella platform
 
-# Run demo
+## Run demo
 
 `TOKEN=WECHAT_APPID DEBUG=* node demo.js`
 
-# Run test
+## Run test
 
 `make test`
 
-# How to configure your WeChat Official Account to use this service:
+## Configuration your WeChat
 
-(How to configure)[https://github.com/10cella/cella-node/issues/1]
+[How to configure your WeChat Official Account to use this service](https://github.com/10cella/cella-node/issues/1)
+
+## 1 minute integrate your WeChat to your service
+
+1) Add `cella-node` to your project
+
+`npm i cella-node --save`
+
+2) Implement your *hello world* rebot
+
+```javascript
+const CellaClient = require('cella-node')
+
+const client = new CellaClient({
+	token: process.env.TOKEN,
+})
+
+client.on('connect', _ => console.log('>>> Connected >>>'))
+
+client.on('message', msg => {
+	client.sendTextMessage(msg.userId, `Hello World`)
+}
+```
