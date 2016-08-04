@@ -1,4 +1,4 @@
-# cella-node
+# cella-node [![Build Status](https://travis-ci.org/10cella/cella-node.svg?branch=master)](https://travis-ci.org/10cella/cella-node)
 
 The hassle-free way to build AI assistant service for WeChat, this is the node.js client of Cella platform
 
