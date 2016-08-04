@@ -1,8 +1,8 @@
 {
   "name": "cella-node",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The hassle-free way to build AI assistant service",
-  "main": "./src/index.js",
+  "main": "./index.js",
   "keywords": [
     "magic",
     "ai",
@@ -10,9 +10,8 @@
     "client",
     "driver"
   ],
-  "files": ["src", "test"],
+  "files": ["src"],
   "scripts": {
-    "debug": "DEBUG=*,-nodemon*,-babel,-engine.io*,-socket.io* nodemon --delay 1500ms --ignore test/ --watch src demo.js",
     "test": "make test"
   },
   "repository": "git+https://github.com/10cella/cella-node.git",
@@ -53,6 +52,6 @@
     "node": ">=4"
   },
   "files": [
-    "lib"
+    "src"
   ]
 }
